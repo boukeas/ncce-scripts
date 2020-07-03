@@ -60,7 +60,7 @@ var dryRun;
 
 // global variable to handle short.cm authorisation
 // get your key from https://app.short.cm/users/integrations/api-key 
-authorisationKey = "2qVUc74P6LxkByOz";
+authorisationKey = "";
 
 // Default access and permission rights for cloned documents.
 var defaultAccess;

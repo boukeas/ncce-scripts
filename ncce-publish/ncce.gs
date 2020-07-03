@@ -1,4 +1,4 @@
-var authorisationKey = "2qVUc74P6LxkByOz";
+var authorisationKey = "";
 
 function getNCCEShortlink(URL) {
 
