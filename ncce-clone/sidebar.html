@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <link href="https://fonts.googleapis.com/css?family=Roboto&display=swap" rel="stylesheet">
+  </head>
+    
+  <body>
+  
+    <h1>NCCE Clone</h1>
+
+    <div>
+      <h2>Folders</h2>
+      <div id='source-input'>
+        <h3>Source</h3>
+        <p id="source-name" unknown>unknown</p>
+        <label for='source'>Id of source folder</label>
+        <input type='text' id='source' required onInput='checkSourceId()'>
+      </div>
+      <div id='parent-input'>
+        <h3>Target parent</h3>
+        <p id="parent-name">My Drive</p>
+        <label for='parent'>Id of target folder parent</label>
+        <input type='text' id='parent' onInput='checkParentId()'>
+      </div>
+    </div>
+        
+    <div>
+      <h2>Parameters</h2>
+      <div id='target-access'>
+        <label for="access">Access for target files:</label>
+        <select id="access">
+          <option value="0">Anyone</option>
+          <option value="1">Anyone with link</option>
+          <option value="2">Domain</option>
+          <option value="3">Domain with link</option>
+          <option value="4">Private</option>
+        </select>
+        <label for="permission">Access for target files:</label>
+        <select id="permission">
+          <option value="0">View</option>
+          <option value="1">Comment</option>
+          <option value="2">Edit</option>
+        </select>
+      </div>
+      <div id='link-update-checkbox'>
+        <input type='checkbox' id='link-update'>
+        <label for='link-update'>Update ncce.io shortlinks</label>
+      </div>
+      <div id="dry-run-checkbox">
+        <input type='checkbox' id="dry-run" checked>
+        <label for='dry-run'>Perform a dry run (no files are copied).</label>
+      </div>  
+    </div>
+
+    <input type="submit" class='action-button' id='clone-button' value="Clone" disabled onclick='startCloning()'>
+    <input type="submit" class='action-button' id='clear-button' value="Clear log" onclick='reset()'>
+    
+    <hr>
+    <div>
+      <h2>Optional</h2>
+      <div>
+        <label for='prefix'>Prefix</label>
+        <input type='text' id='prefix' value="Clone of ">
+      </div>
+    </div>
+  </body>
+
+  <script>
+  var runner = google.script.run;
+  var sourceRunner = runner.withSuccessHandler(handleSource).withFailureHandler(handleSource);
+  var parentRunner = runner.withSuccessHandler(handleParent).withFailureHandler(handleParent);
+  var cloneRunner = runner.withSuccessHandler(handleClone).withFailureHandler(handleClone);
+    
+  function startCloning() {
+    // disable Clone button
+    if (!document.getElementById("clone-button").getAttribute('disabled')) {
+      document.getElementById("clone-button").setAttribute('disabled', true);
+      
+      // add a dialog to review settings
+      var parameters = {
+        "sourceId": document.getElementById("source").value,
+        "parentId": document.getElementById("parent").value,
+        "dryRun": document.getElementById("dry-run").checked,
+        "linkUpdate": document.getElementById("link-update").checked,
+        "prefix": document.getElementById("prefix").value,
+        "access": document.getElementById("access").value,
+        "permission": document.getElementById("permission").value
+      };
+       
+      cloneRunner.init(parameters);
+    }
+  }
+  
+  function reset() {
+    runner.clear();
+  }
+  
+  function checkSourceId() {
+    sourceRunner.checkId(document.getElementById("source").value);
+  }
+  
+  function checkParentId() {
+    var parentId = document.getElementById("parent").value
+    if (parentId == '') {
+      document.getElementById("parent-name").innerHTML = 'My Drive';
+    } else {
+      parentRunner.checkId(document.getElementById("parent").value);
+    }
+  }
+
+  function handleSource(filename) {
+    var name = document.getElementById("source-name");
+    var button = document.getElementById("clone-button");
+    if (filename) {
+      name.innerHTML = filename;
+      name.removeAttribute('unknown');
+      button.removeAttribute('disabled');
+    } else {
+      name.innerHTML = 'unknown';
+      name.setAttribute('unknown', true);
+      button.setAttribute('disabled', true);
+    }
+  }
+  
+  function handleParent(filename) {
+    if (filename) {
+      document.getElementById("parent-name").innerHTML = filename;
+    } else {
+      document.getElementById("parent-name").innerHTML = 'unknown';
+    }
+  }
+
+  function handleClone() {
+    checkSourceId();
+  }
+
+  </script>
+  
+  <style>
+  body {
+    font-family: 'Roboto', sans-serif;
+  }
+  
+  #source-input, #parent-input {
+    margin-bottom: 12pt;
+  }
+
+  .action-button {
+    padding: 18px 12px;
+    border: none;
+    font-size: 16pt;
+    margin: 12pt 0;
+    color: white;
+    background-color: #4c43c5;
+    font-weight: bold;
+  }
+
+  .action-button[disabled] {
+    color: #606060;
+    background-color: #a0a0a0;
+  }
+  
+  #source-name[unknown] {
+    color: red;
+    text-decoration: bold;
+  }
+  
+  #source-name::before, #parent-name::before {
+    content: '\1F4C1';
+    filter: invert(75%) brightness(200%) contrast(20%);
+    display: inline-block;
+    transform: translateY(-3px);
+    padding-right: 6px;
+  }
+  </style>
+
+</html>
+
+

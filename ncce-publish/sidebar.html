@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <link href="https://fonts.googleapis.com/css?family=Roboto&display=swap" rel="stylesheet">
+  </head>
+    
+  <body>
+  
+    <h1>NCCE Publish</h1>
+
+    <div>
+    <h2>1. Index unit</h2>
+    <p>Create an index of all the files in a unit folder.</p>
+    <p>If you specify a unit prefix, then <em>suggested</em> 
+       ncce.io shortlinks and tags will be produced for
+       files that follow the naming conventions.</p>
+
+    <h3>Unit folder</h3>
+    <p id="folder-name" unknown>unknown</p>
+    <label for='folder'>Id of unit folder to be indexed</label>
+    <input type='text' id='folder' required onInput='checkFolderId()'>
+    
+    <h3>Unit prefix</h3>
+    <label for='prefix'>Unique 4-character unit identifier, used as a prefix in shortlink paths</label>
+    <input type='text' id='prefix' onInput='checkPrefix()' pattern='[A-Za-z0-9]{3,4}'>
+
+    </div>
+    <input type="submit" class='action-button' id='index-button' value="Index" disabled onClick='startIndexing()'>
+    
+    <hr>
+    <div>
+    <h2>2. Create shortlinks</h2>
+    <p>Run through the index and create ncce.io shortlinks. Rows with no "path" (column C) are ignored.</p>
+    <p><strong>Caution:</strong> It's <em>your</em> responsibility to check shortlink suggestions before creating them.</p>
+
+    <div>
+    <h3>Unit tags</h3>
+    <label for='unit-tags'>Shortlink tags for all files in the unit</label>
+    <input type='text' id='unit-tags'>
+    </div>
+    
+    <div>
+    <p>
+        <input type='checkbox' id='shortcm-check'>
+        <label for='shortcm-check'>Check shortlinks on short.cm</label>
+    </p>
+    <input type="submit" class='action-button' id='check-button' value="Check" onClick='startChecking()'>
+    <input type="submit" class='action-button' id='create-button' value="Create" disabled onClick='startCreating()'>
+    </div>
+    </div>
+        
+    <hr>
+    <div>
+    <h2>3. Replace shortlinks</h2>
+    <p>Run through the documents in the index and replace links followed by brackets with ncce.io shortlinks.</p>        
+    <div>
+    <p>
+        <input type='checkbox' id='dryrun-replace' checked>
+        <label for='dryrun-replace'>Perform a dry run (no links will be replaced).</label>
+    </p>
+    <input type="submit" class='action-button' id='replace-button' value="Replace" onClick='startReplacing()'>
+    </div>
+    </div>
+
+    <hr>
+    <h2>Utilities</h2>
+    <p>Functionality that makes your life easier.</p>
+
+    <h3>Self links</h3>
+    <p>Fix "This resource is available online" self-referencing links at the end of every file.</p>
+
+    <input type="submit" class='action-button' id='self-link-button' value="Fix self-links" onClick='startFixingSelfrefs()'>
+
+    <h3>Last updated</h3>
+    <p>Fix "Last updated" date at the end of every file.</p>
+      
+    <label for='lu-date'>Last updated date (leave blank for today's date)</label>
+    <input type='text' id='lu-date' pattern='[0-9][0-9]-[0-9][0-9]-[0-9][0-9]'>
+      
+    <input type="submit" class='action-button' id='last-updated' value="Fix last-updated" onClick='startFixingUpdated()'>
+  </body>
+
+  <script>
+  var runner = google.script.run;
+  var folderRunner = runner.withSuccessHandler(handleFolder).withFailureHandler(handleFolder);
+  var indexRunner = runner.withSuccessHandler(handleIndex).withFailureHandler(handleIndex);
+  var checkRunner = runner.withSuccessHandler(handleCheck).withFailureHandler(handleCheck);
+  var createRunner = runner.withSuccessHandler(handleCreate).withFailureHandler(handleCreate);
+  var replaceRunner = runner.withSuccessHandler(handleReplace).withFailureHandler(handleReplace);
+  var folderValid = false;
+  var prefixValid = false;
+  
+  function checkFolderId() {
+    folderRunner.checkId(document.getElementById("folder").value);
+  }
+  
+  function handleFolder(filename) {
+    var name = document.getElementById("folder-name");
+    if (filename) {
+      name.innerHTML = filename;
+      name.removeAttribute('unknown');
+      document.getElementById("index-button").removeAttribute('disabled');
+    } else {
+      name.innerHTML = 'unknown';
+      name.setAttribute('unknown', true);
+      document.getElementById("index-button").setAttribute('disabled', true);
+    }
+  }
+
+  function checkPrefix() {
+    var prefix = document.getElementById("prefix");
+    prefixValid = (prefix.value.length > 0) && !prefix.validity.patternMismatch;
+  }
+  
+  function startIndexing() {
+    document.getElementById("index-button").setAttribute('disabled', true);
+    document.getElementById("check-button").setAttribute("disabled", true);
+    document.getElementById("create-button").setAttribute("disabled", true);
+    document.getElementById("replace-button").setAttribute("disabled", true);
+    var parameters = {"folderId": document.getElementById("folder").value};
+    if (prefixValid) parameters["unit"] = document.getElementById("prefix").value
+    indexRunner.startIndexing(parameters);
+  }
+  
+  function handleIndex(tags) {
+    document.getElementById("index-button").removeAttribute('disabled');
+    document.getElementById("check-button").removeAttribute('disabled');
+    document.getElementById("replace-button").removeAttribute('disabled');
+    document.getElementById("unit-tags").value = tags.join(" | ");
+  }
+
+  function startChecking() {
+    document.getElementById("index-button").setAttribute('disabled', true);
+    document.getElementById("check-button").setAttribute("disabled", true);
+    document.getElementById("create-button").setAttribute("disabled", true);
+    document.getElementById("replace-button").setAttribute("disabled", true);
+    checkRunner.startChecking(document.getElementById('shortcm-check').checked);
+  }
+  
+  function handleCheck(ok) {
+    document.getElementById("index-button").removeAttribute('disabled');
+    document.getElementById("check-button").removeAttribute('disabled');
+    if (ok) document.getElementById("create-button").removeAttribute("disabled");
+    document.getElementById("replace-button").removeAttribute('disabled');
+  }
+
+  function startCreating() {
+    document.getElementById("index-button").setAttribute('disabled', true);
+    document.getElementById("check-button").setAttribute("disabled", true);
+    document.getElementById("create-button").setAttribute("disabled", true);
+    document.getElementById("replace-button").setAttribute("disabled", true);
+    var tags = document.getElementById("unit-tags").value.split("|").map(tag => tag.trim());
+    createRunner.startCreating(tags);
+  }
+  
+  function handleCreate() {
+    document.getElementById("index-button").removeAttribute('disabled');
+    document.getElementById("check-button").removeAttribute('disabled');
+    document.getElementById("create-button").removeAttribute('disabled');
+    document.getElementById("replace-button").removeAttribute('disabled');
+  }
+
+  function startReplacing() {
+    document.getElementById("index-button").setAttribute('disabled', true);
+    document.getElementById("check-button").setAttribute("disabled", true);
+    document.getElementById("create-button").setAttribute("disabled", true);
+    document.getElementById("replace-button").setAttribute("disabled", true);
+    replaceRunner.startReplacing(document.getElementById('dryrun-replace').checked);
+  }
+  
+  function handleReplace() {
+    document.getElementById("index-button").removeAttribute('disabled');
+    document.getElementById("check-button").removeAttribute('disabled');
+    document.getElementById("create-button").removeAttribute("disabled");
+    document.getElementById("replace-button").removeAttribute('disabled');
+  }
+
+  function startFixingUpdated() {
+    var dateElement = document.getElementById("lu-date");
+    console.log()
+    if (dateElement.validity.patternMismatch)
+      runner.startFixingUpdated();
+    else 
+      runner.startFixingUpdated(dateElement.value);
+  }
+
+  function startFixingSelfrefs() {
+    runner.startFixingSelfrefs();
+  }
+  </script>
+  
+  <style>
+  body {
+    font-family: 'Roboto', sans-serif;
+  }
+    
+  #folder-input {
+    margin-bottom: 12pt;
+  }
+
+  .action-button {
+    padding: 18px 12px;
+    border: none;
+    font-size: 16pt;
+    margin: 12pt 0;
+    color: white;
+    background-color: #4c43c5;
+    font-weight: bold;
+  }
+
+  .action-button[disabled] {
+    color: #606060;
+    background-color: #a0a0a0;
+  }
+  
+  #folder-name[unknown] {
+    color: red;
+    text-decoration: bold;
+  }
+  
+  #folder-name::before {
+    content: '\1F4C1';
+    filter: invert(75%) brightness(200%) contrast(20%);
+    display: inline-block;
+    transform: translateY(-3px);
+    padding-right: 6px;
+  }
+  
+  #lu-date:invalid {
+    background-color: #ffa0a0;
+  }
+  </style>
+
+</html>
+
+
